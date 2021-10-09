@@ -1,0 +1,133 @@
+#!/bin/bash
+# requires socat, jq
+
+# global vars
+prog="${0##*/}"
+config="$HOME/.config/music/radio"
+usage="Syntax: $prog [toggle|stop|play|pause|prev|next|list|<station>]
+"
+
+# read config
+declare -A urls
+urls=()
+. "$config"
+
+# prints usage
+usage() {
+	echo "$usage" >&2
+}
+
+# start a tmux mpv session if there isn't one already
+start() {
+	[[ -z "$(<"$savefile")" ]] && echo 0 > "$savefile"
+	if ! status; then
+		# start mpv in tmux
+		tmux new -d -n radio -s radio \
+			mpv \
+				--loop-playlist \
+				--no-resume-playback \
+				--playlist-start="$(<"$savefile")" \
+				--input-ipc-server="$ctlfile" \
+				$(printf "%s\n" "${urls[@]}" | sed -r 's/[^=]*=//')
+	fi
+}
+
+# stops the tmux mpv session
+stop() {
+	status && ipc get_property playlist-pos > "$savefile"
+	send Q
+}
+
+# check the status of the tmux mpv session
+status() {
+	tmux has -t radio &>/dev/null
+}
+
+# prints stations starting from the current one
+list() {
+	# figure position in playlist
+	startpos="$(<"$savefile")"
+	status && startpos="$(ipc get_property playlist-pos)"
+
+	# print playlist
+	printf "%s\n" "${urls[@]:$startpos}" "${urls[@]::$startpos}"
+}
+
+# choose a station by name
+choose() {
+	for i in "${!urls[@]}"; do
+		if [[ "${urls[i],,}" == *"${1,,}"* ]]; then
+			if status; then
+				ipc set_property playlist-pos $i >/dev/null
+			else
+				echo $i > "$savefile"
+			fi
+			exit
+		fi
+	done
+}
+
+# send input to tmux session
+send() {
+	tmux send -t radio "$@"
+}
+
+# communicate with mpv over ipc
+ipc() {
+	cmd="$1"
+	shift
+	echo "{ \"command\": [\"$cmd\"$(printf ', "%s"' "$@")] }" \
+	| socat - "$ctlfile" \
+	| jq -r ".data"
+}
+
+# do the thing
+case "$1" in
+	toggle)
+		# toggle between start/stop playback
+		if status; then
+			stop
+		else
+			start
+		fi
+	;;
+	stop)
+		# exit mpv
+		stop
+	;;
+	play)
+		# start playback
+		start
+	;;
+	pause)
+		# stop playback
+		start
+		stop
+	;;
+	prev)
+		# prev radio station
+		start
+		send '<'
+	;;
+	next)
+		# next radio station
+		start
+		send C-m
+	;;
+	list|playlist)
+		# list radio stations
+		list | sed -r 's/=.*//'
+	;;
+	'')
+		# attach to radio tmux session
+		if [[ -t 0 ]]; then
+			start
+			exec tmux attach -t radio
+		fi
+	;;
+	*)
+		# switch to radio station
+		choose "$1"
+	;;
+esac
+

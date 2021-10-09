@@ -1,0 +1,155 @@
+#!/bin/bash
+
+# global vars
+prog="${0##*/}"
+queue="$HOME/.config/music/queue"
+excludefile="$HOME/.config/music/exclude"
+playlistdir="$HOME/.config/music/playlists"
+usage="Syntax: $prog [toggle|stop|play|pause|prev|next|list|<playlist>]
+"
+
+# figure out music dir
+if grep -qs music_directory /etc/mpd.conf; then
+	musicdir="$(awk '/^[[:space:]]*music_directory/ {
+		$1=""
+		gsub(/^[[:space:]]*["'\'']/, "")
+		gsub(/["'\''][[:space:]]*/, "")
+		gsub(/^~/, ENVIRON["HOME"])
+		print
+	}' /etc/mpd.conf)"
+	
+	# do all work from music dir if possible
+	[[ -x "$musicdir" ]] && cd "$musicdir"
+fi
+
+# make sure exclude file exists
+touch "$excludefile"
+
+print_playlist() {
+	local playlist="$playlistdir/$1" 
+	if [[ ! -r "$playlist" ]]; then
+		echo "Can't read playlist: $playlist" >&2
+		return 1
+	fi
+	while read -r line; do
+		# skip comments and blank lines
+		if [[ "$line" == '#'* || "$line" =~ ^[[:space:]]*$ ]]; then
+			continue
+		# add files and directories
+		elif [[ "$line" == /* ]]; then
+			#IFS=$'\n' read -a dirs < <(compgen -G "${line#/}")
+			readarray -t dirs < <(compgen -G "${line#/}")
+			#printf "%s\n" "${dirs[@]}" >&2
+			find "${dirs[@]}" -type f | sort
+		# add songs randomly from playlist
+		elif [[ "$line" == [0-9]* ]]; then
+			if [[ "$1" == "$subplaylist" ]]; then
+				echo "Skipping playlist that lists itself as subplaylist: $subplaylist" >&2
+				continue
+			fi
+			read n subplaylist <<< "$line"
+			print_playlist "$subplaylist" | shuf -n"$n"
+		# run mpc command
+		else
+			read -a args <<< "$line"
+			if [[ "${args[0]}" =~ ^(random|repeat|shuffle)$ ]]; then
+				mpc_commands+=( "$(printf "%q " "${args[@]}")" )
+			else
+				mpc "${args[@]}"
+			fi
+		fi
+	done < "$playlist" > >(
+		grep -asvFf "$excludefile" \
+		| awk '
+			# remove duplicate lines without sorting
+			# https://stackoverflow.com/a/11532197
+			!x[$0]++
+		'
+	)
+}
+
+case "$1" in
+	toggle)
+		# toggle between play/pause song
+		mpc -q toggle
+	;;
+	stop)
+		# stop song
+		mpc -q stop
+	;;
+	play)
+		# play song
+		mpc -q play
+	;;
+	pause)
+		# pause song
+		mpc -q pause
+	;;
+	prev)
+		# prev song
+		mpc -q prev
+	;;
+	next)
+		# next song
+		mpc -q next
+	;;
+	list|playlist)
+		# list playlists
+		printf "%s\n" "$playlistdir"/* | sed 's,.*/,,'
+	;;
+	goto)
+		shift
+		pattern="${1//\//\\/}"
+    
+		while read num songfile; do
+			#echo "$num $songfile" >&2
+			mpc del "$num"
+			mpc insert "$songfile"
+		done < <(mpc playlist -f %file% | cat -n | grep "$pattern")
+	;;
+	'')
+			# show mpd status
+			mpc
+	;;
+	*)
+		playlist="$playlistdir/$1" 
+		if [[ -f "$playlist" ]]; then
+			# create temp file
+			trap "rm -f '$tmpfile'" EXIT
+			tmpfile="$(mktemp --tmpdir "$prog.XXXXXXXXXX")" || exit 1
+
+			# clear current playlist
+			mpc -q clear
+
+			# load new playlist
+			mpc_commands=()
+			print_playlist "$1" > >( mpc add >"$tmpfile" 2>&1 )
+			sleep 0.5
+
+			# check `mpc add` output for erroring files
+			if grep -q '^error adding' "$tmpfile"; then
+				# update exclude file and try again
+				sed -n '/error adding/ {
+					s/^error adding //
+					s/: No such directory$//
+					p
+				}' < "$tmpfile" >> "$excludefile"
+				mpc -q clear
+				mpc_commands=()
+				print_playlist "$1" > >( mpc add )
+			fi
+			sleep 0.3
+
+			# run whatever mpc commands were in the playlist
+			for cmd in "${mpc_commands[@]}"; do
+				mpc -q $cmd
+			done
+
+			# play the playlist
+			mpc -q play
+		else
+			echo "$usage" >&2
+		fi
+	;;
+esac
+

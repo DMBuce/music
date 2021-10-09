@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# global vars
+prog="${0##*/}"
+statefile="$HOME/.config/music/pandora.state"
+usage="Syntax: $prog [toggle|stop|play|pause|prev|next|list|<station>]
+"
+
+# prints usage
+usage() {
+	echo "$usage" >&2
+}
+
+# start a tmux pianobar session if there isn't one already
+start() {
+	if ! tmux has -t pandora &>/dev/null; then
+		tmux new -d -n pandora -s pandora pianobar
+	fi
+}
+
+# help output
+if [[ "$*" == *--help* ]]; then
+	usage
+	exit
+fi
+
+# do the thing
+case "$1" in
+	toggle)
+		# toggle between play/pause song
+		start
+		pianoctl p
+	;;
+	stop)
+		# exit pianobar
+		pianoctl q
+	;;
+	play)
+		# play song
+		start
+		pianoctl P
+	;;
+	pause)
+		# pause song
+		start
+		pianoctl S
+	;;
+	prev)
+		## ban song for 1 month
+		#pianoctl t
+	;;
+	next)
+		# next song
+		start
+		pianoctl n
+	;;
+	list|playlist)
+		# list radio stations
+		sed -n '/^station[0-9]*=/ s/^station[0-9]*=//p' "$statefile"
+	;;
+	'')
+		# attach to pandora tmux session
+		if [[ -t 0 ]]; then
+			start
+			exec tmux attach -t pandora
+		fi
+	;;
+	*)
+		# switch to radio station
+		pos="$(sed -n "/station.*$1/I { s/^station//; s/=.*//; p }" "$statefile")"
+		[[ "$pos" =~ [0-9]+ ]] || exit
+		pianoctl "s$pos\n"
+	;;
+esac
+

@@ -1,0 +1,53 @@
+#!/bin/bash
+
+prog="${0##*/}"
+config="$HOME/.config/music/current"
+dmenu=(rofi -dmenu -i)
+usage="Syntax: $prog [mpd|pandora|radio] [toggle|stop|play|pause|prev|next|list|<choice>] [...]
+"
+
+# print usage
+if [[ "$*" == *--help* ]]; then
+	echo "$usage" >&2
+	exit 1
+elif (( $# == 0 )); then
+	set -- ''
+fi
+
+# make sure audio programs can use pulseaudio when running from cron
+export XDG_RUNTIME_DIR="/run/user/$UID"
+
+# do the thing
+for i in "$@"; do
+	case "$i" in
+		mpd)
+			[[ -f "$config" ]] && $(<"$config") stop
+			echo 'mps' > "$config"
+		;;
+		pandora)
+			[[ -f "$config" ]] && $(<"$config") stop
+			echo 'pandora' > "$config"
+		;;
+		radio)
+			[[ -f "$config" ]] && $(<"$config") stop
+			echo 'radio' > "$config"
+			sleep 0.3
+		;;
+		select|choose)
+			[[ -f "$config" ]] && music="$(<"$config")"
+			[[ -n "$music" ]] || exit 1
+			cols=5
+			items="$(music list | wc -l)"
+			lines=$(( items / cols + 1 ))
+			choice="$($music list | "${dmenu[@]}" -p "${music^}")" || exit
+			$music "$choice"
+		;;
+		'')
+			[[ -f "$config" ]] && $(<"$config")
+		;;
+		*)
+			[[ -f "$config" ]] && $(<"$config") "$i"
+		;;
+	esac
+done
+
