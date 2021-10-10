@@ -40,11 +40,11 @@ INSTALL         = /usr/bin/install -c
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_DATA    = ${INSTALL} -m 644
 
-PACKAGE   = buceutils
-PROG      = buceutils
+PACKAGE   = music
+PROG      = music
 #VERSION   = 0.0.0
-BUGREPORT = https://github.com/DMBuce/buceutils/issues
-URL       = https://github.com/DMBuce/buceutils
+BUGREPORT = https://github.com/DMBuce/music/issues
+URL       = https://github.com/DMBuce/music
 
 BINFILES         = $(wildcard bin/*)
 #ETCFILES         = $(shell find etc/ -type f)
