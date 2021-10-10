@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# global vars
-prog="${0##*/}"
-statefile="$HOME/.config/music/pandora.state"
+# init settings
+. music
+
+# config
+statefile="${pandora[statefile]:-$configdir/$prog.state}"
 usage="Syntax: $prog [toggle|stop|play|pause|prev|next|list|<station>]
 "
 
@@ -23,6 +25,9 @@ if [[ "$*" == *--help* ]]; then
 	usage
 	exit
 fi
+
+# try to create folders if they don't exist
+mkdir -p "$(dirname "$statefile")"
 
 # do the thing
 case "$1" in
