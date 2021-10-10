@@ -1,53 +1,179 @@
 #!/bin/bash
 
+# globals
 prog="${0##*/}"
-config="$HOME/.config/music/current"
-dmenu=(rofi -dmenu -i)
-usage="Syntax: $prog [mpd|pandora|radio] [toggle|stop|play|pause|prev|next|list|<choice>] [...]
-"
+configdir="${XDG_CONFIG_HOME:-$HOME/.config}/music"
+ini="$configdir/config.ini"
 
-# print usage
-if [[ "$*" == *--help* ]]; then
-	echo "$usage" >&2
-	exit 1
-elif (( $# == 0 )); then
-	set -- ''
+msg() {
+	local message="$1"
+	shift
+	printf "$message\n" "$@"
+}
+
+warn() {
+	msg "$@" >&2
+}
+
+err() {
+	msg "$@" >&2
+}
+
+die() {
+	local retval=1
+	if [[ "$1" =~ ^[0-9]+$ ]]; then
+		retval="$1"
+		shift
+	fi
+	err "$@"
+	exit $retval
+}
+
+load_ini() {
+	local ini="$1"
+	local line key value sec section section_keys
+
+	# define default section
+	sec=general
+	declare -n section="$sec"			 # requires bash 4.3+
+	declare -n section_keys="${sec}_keys" # requires bash 4.3+
+	declare -ga ${sec}_keys
+	declare -gA $sec
+	(( ${#section[@]} == 0 )) && section=()
+	(( ${#section_keys[@]} == 0 )) && section_keys=()
+
+	shopt -s extglob
+	while read line; do
+		# strip trailing comments
+		line="${line%%+([[:space:]])[#;]*}"
+		# strip full-line comments
+		line="${line##*([[:space:]])[#;]*}"
+		# skip comments and empty lines
+		[[ -z $line ]] && continue
+
+		# process section headers
+		if [[ $line =~ ^\[(.*)\]$ ]]; then
+			# replace invalid key characters with underscores
+			sec="${BASH_REMATCH[1]//[^a-zA-Z0-9_]/_}"
+			[[ $sec = [0-9]* ]] && sec="_$sec"
+
+			# define arrays for section
+			declare -n section="$sec"			 # requires bash 4.3+
+			declare -n section_keys="${sec}_keys" # requires bash 4.3+
+			declare -ga ${sec}_keys
+			declare -gA $sec
+
+		# process key-value pairs
+		else
+			# normalize lines without a delimiter (=)
+			if [[ $line != *=* ]]; then
+				# turn 'nokey' into 'key=0'
+				if [[ $line == [Nn][Oo]* ]]; then
+					line="${line#[Nn][Oo]}=0"
+				# turn 'key' into 'key=1'
+				else
+					line="$line=1"
+				fi
+			fi
+
+			# split line
+			IFS='=' read key value <<< "$line"
+
+			# remove leading and trailing whitespace
+			key="${key##+([[:space:]])}"
+			key="${key%%+([[:space:]])}"
+			value="${value##+([[:space:]])}"
+			value="${value%%+([[:space:]])}"
+
+			# interpret ~/ as $HOME/
+			[[ $value == '~/'* ]] && value="${value/~\//$HOME/}"
+
+			# store key and value
+			section_keys+=("$key")
+			section["$key"]="$value"
+		fi
+	done < "$ini"
+	shopt -u extglob
+}
+
+main() {
+	# config
+	dmenu="${music[dmenu]-dmenu}"
+	statefile="${music[statefile]:-$configdir/$prog.state}"
+	usage="Syntax: $prog [mps|pandora|radio] [toggle|stop|play|pause|prev|next|list|<choice>] [...]
+	"
+
+	music() {
+		local music
+		if [[ -r "$statefile" ]]; then
+			music=$(<"$statefile")
+			if [[ ! "$music" =~ ^(mps|pandora|radio)$ ]]; then
+				music=""
+			fi
+		fi
+		echo "$music"
+	}
+
+	# print usage
+	if [[ "$*" == *--help* ]]; then
+		die 0 "$usage"
+	elif (( $# == 0 )); then
+		set -- ''
+	fi
+
+	# do the thing
+	for subcmd in "$@"; do
+		case "$subcmd" in
+			mps|pandora|radio)
+				music=$(music)
+				[[ -n $music ]] && "$music" stop
+				echo "$subcmd" > "$statefile"
+				sleep 0.3
+			;;
+			select|choose)
+				music=$(music)
+				if [[ -z $music ]]; then
+					die "No music source selected, run: %s" "$prog mps|pandora|radio"
+				fi
+				choice="$($music list | $dmenu -p "${music^}")" || exit
+				exec $music "$choice"
+			;;
+			'')
+				music=$(music)
+				if [[ -z $music ]]; then
+					die "No music source selected, run: %s" "$prog mps|pandora|radio"
+				fi
+				exec $music
+			;;
+			*)
+				music=$(music)
+				if [[ -z $music ]]; then
+					die "No music source selected, run: %s" "$prog mps|pandora|radio"
+				fi
+				exec $music "$subcmd"
+			;;
+		esac
+	done
+}
+
+# create config dir if necessary
+mkdir -p "$(dirname "$ini")"
+
+# load config
+if [[ -r "$ini" ]]; then
+	load_ini "$ini"
 fi
 
-# make sure audio programs can use pulseaudio when running from cron
-export XDG_RUNTIME_DIR="/run/user/$UID"
-
-# do the thing
-for i in "$@"; do
-	case "$i" in
-		mpd)
-			[[ -f "$config" ]] && $(<"$config") stop
-			echo 'mps' > "$config"
-		;;
-		pandora)
-			[[ -f "$config" ]] && $(<"$config") stop
-			echo 'pandora' > "$config"
-		;;
-		radio)
-			[[ -f "$config" ]] && $(<"$config") stop
-			echo 'radio' > "$config"
-			sleep 0.3
-		;;
-		select|choose)
-			[[ -f "$config" ]] && music="$(<"$config")"
-			[[ -n "$music" ]] || exit 1
-			cols=5
-			items="$(music list | wc -l)"
-			lines=$(( items / cols + 1 ))
-			choice="$($music list | "${dmenu[@]}" -p "${music^}")" || exit
-			$music "$choice"
-		;;
-		'')
-			[[ -f "$config" ]] && $(<"$config")
-		;;
-		*)
-			[[ -f "$config" ]] && $(<"$config") "$i"
-		;;
-	esac
+# export variables defined in [export]
+for var in "${!export[@]}"; do
+	export "$var=$(
+		export HOME HOSTNAME PWD UID USER
+		envsubst <<< "${export[$var]}"
+	)"
 done
+
+# run program if this script wasn't sourced
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi
 
