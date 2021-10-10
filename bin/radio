@@ -1,16 +1,20 @@
 #!/bin/bash
-# requires socat, jq
 
-# global vars
-prog="${0##*/}"
-config="$HOME/.config/music/radio"
+# init settings
+. music
+
+# config
+statefile="${radio[statefile]:-$configdir/$prog.state}"
+ctlfile="${radio[ctlfile]:-$configdir/$prog.sock}"
 usage="Syntax: $prog [toggle|stop|play|pause|prev|next|list|<station>]
 "
 
-# read config
-declare -A urls
+# construct an ordered list of urls from configured stations
 urls=()
-. "$config"
+for key in "${stations_keys[@]}"; do
+	urls+=("${stations[$key]}")
+done
+unset key
 
 # prints usage
 usage() {
@@ -19,22 +23,23 @@ usage() {
 
 # start a tmux mpv session if there isn't one already
 start() {
-	[[ -z "$(<"$savefile")" ]] && echo 0 > "$savefile"
+	[[ -z "$(<"$statefile")" ]] && echo 0 > "$statefile"
 	if ! status; then
 		# start mpv in tmux
 		tmux new -d -n radio -s radio \
 			mpv \
 				--loop-playlist \
 				--no-resume-playback \
-				--playlist-start="$(<"$savefile")" \
+				--playlist-start="$(<"$statefile")" \
 				--input-ipc-server="$ctlfile" \
-				$(printf "%s\n" "${urls[@]}" | sed -r 's/[^=]*=//')
+				--no-config \
+				"${urls[@]}"
 	fi
 }
 
 # stops the tmux mpv session
 stop() {
-	status && ipc get_property playlist-pos > "$savefile"
+	status && ipc get_property playlist-pos > "$statefile"
 	send Q
 }
 
@@ -43,26 +48,26 @@ status() {
 	tmux has -t radio &>/dev/null
 }
 
-# prints stations starting from the current one
+# prints station names starting from the currently playing one
 list() {
-	# figure position in playlist
-	startpos="$(<"$savefile")"
+	# figure out position in playlist
+	startpos="$(<"$statefile")"
 	status && startpos="$(ipc get_property playlist-pos)"
 
 	# print playlist
-	printf "%s\n" "${urls[@]:$startpos}" "${urls[@]::$startpos}"
+	printf "%s\n" "${station_keys[@]:$startpos}" "${station_keys[@]::$startpos}"
 }
 
 # choose a station by name
 choose() {
-	for i in "${!urls[@]}"; do
-		if [[ "${urls[i],,}" == *"${1,,}"* ]]; then
+	for i in "${!station_keys[@]}"; do
+		if [[ "${station_keys[i],,}" == *"${1,,}"* ]]; then
 			if status; then
 				ipc set_property playlist-pos $i >/dev/null
 			else
-				echo $i > "$savefile"
+				echo $i > "$statefile"
 			fi
-			exit
+			return
 		fi
 	done
 }
@@ -80,6 +85,9 @@ ipc() {
 	| socat - "$ctlfile" \
 	| jq -r ".data"
 }
+
+# try to create folders if they don't exist
+mkdir -p "$(dirname "$statefile")" "$(dirname "$ctlfile")"
 
 # do the thing
 case "$1" in
@@ -116,7 +124,7 @@ case "$1" in
 	;;
 	list|playlist)
 		# list radio stations
-		list | sed -r 's/=.*//'
+		list
 	;;
 	'')
 		# attach to radio tmux session
