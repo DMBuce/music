@@ -1,26 +1,20 @@
 #!/bin/bash
 
-# global vars
-prog="${0##*/}"
-queue="$HOME/.config/music/queue"
-excludefile="$HOME/.config/music/exclude"
-playlistdir="$HOME/.config/music/playlists"
+# init settings
+. music
+
+# config
+excludefile="${mps[excludefile]:-$configdir/$prog.exclude}"
+playlistdir="${mps[playlistdir]:-$configdir/$prog-playlists}"
+musicdir="${mps[musicdir]:-$HOME/music}"
 usage="Syntax: $prog [toggle|stop|play|pause|prev|next|list|<playlist>]
 "
 
-# figure out music dir
-if grep -qs music_directory /etc/mpd.conf; then
-	musicdir="$(awk '/^[[:space:]]*music_directory/ {
-		$1=""
-		gsub(/^[[:space:]]*["'\'']/, "")
-		gsub(/["'\''][[:space:]]*/, "")
-		gsub(/^~/, ENVIRON["HOME"])
-		print
-	}' /etc/mpd.conf)"
-	
-	# do all work from music dir if possible
-	[[ -x "$musicdir" ]] && cd "$musicdir"
-fi
+# do all work from music dir if possible
+[[ -x "$musicdir" ]] && cd "$musicdir"
+
+# try to create folders if they don't exist
+mkdir -p "$(dirname "$excludefile")" "$playlistdir"
 
 # make sure exclude file exists
 touch "$excludefile"
