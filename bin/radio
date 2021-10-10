@@ -55,13 +55,13 @@ list() {
 	status && startpos="$(ipc get_property playlist-pos)"
 
 	# print playlist
-	printf "%s\n" "${station_keys[@]:$startpos}" "${station_keys[@]::$startpos}"
+	printf "%s\n" "${stations_keys[@]:$startpos}" "${stations_keys[@]::$startpos}"
 }
 
 # choose a station by name
 choose() {
-	for i in "${!station_keys[@]}"; do
-		if [[ "${station_keys[i],,}" == *"${1,,}"* ]]; then
+	for i in "${!stations_keys[@]}"; do
+		if [[ "${stations_keys[i],,}" == *"${1,,}"* ]]; then
 			if status; then
 				ipc set_property playlist-pos $i >/dev/null
 			else
