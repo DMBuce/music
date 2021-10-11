@@ -32,7 +32,6 @@ start() {
 				--no-resume-playback \
 				--playlist-start="$(<"$statefile")" \
 				--input-ipc-server="$ctlfile" \
-				--no-config \
 				"${urls[@]}"
 	fi
 }
