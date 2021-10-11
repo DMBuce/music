@@ -50,9 +50,9 @@ BUGREPORT = https://github.com/DMBuce/music/issues
 URL       = https://github.com/DMBuce/music
 
 BINFILES         = $(wildcard bin/*)
-#ETCFILES         = $(shell find etc/ -type f)
+ETCFILES         = $(shell find etc/ -type f)
 BINFILES_INSTALL = $(BINFILES:bin/%=$(DESTDIR)$(bindir)/%)
-#ETCFILES_INSTALL = $(ETCFILES:etc/%=$(DESTDIR)$(sysconfdir)/%)
+ETCFILES_INSTALL = $(ETCFILES:etc/%=$(DESTDIR)$(sysconfdir)/%)
 INSTALL_FILES    = $(BINFILES_INSTALL) $(ETCFILES_INSTALL)
 INSTALL_DIRS     = $(sort $(dir $(INSTALL_FILES)))
 
