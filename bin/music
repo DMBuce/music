@@ -2,6 +2,7 @@
 
 # globals
 prog="${0##*/}"
+sysconfdir="/etc"
 configdir="${XDG_CONFIG_HOME:-$HOME/.config}/music"
 ini="$configdir/config.ini"
 
@@ -156,8 +157,11 @@ main() {
 	done
 }
 
-# create config dir if necessary
-mkdir -p "$(dirname "$ini")"
+# copy default config if necessary
+if [[ ! -f "$ini" ]]; then
+	mkdir -p "$(dirname "$ini")"
+	cp -v "$sysconfdir/music.ini" "$ini"
+fi
 
 # load config
 if [[ -r "$ini" ]]; then
