@@ -32,6 +32,7 @@ start() {
 				--no-resume-playback \
 				--playlist-start="$(<"$statefile")" \
 				--input-ipc-server="$ctlfile" \
+				--no-config \
 				"${urls[@]}"
 	fi
 }
@@ -84,6 +85,11 @@ ipc() {
 	| socat - "$ctlfile" \
 	| jq -r ".data"
 }
+
+# make sure some radio stations are defined
+if (( ${#stations[@]} == 0 )); then
+	die "No stations defined in config: %s" "$ini"
+fi
 
 # try to create folders if they don't exist
 mkdir -p "$(dirname "$statefile")" "$(dirname "$ctlfile")"
