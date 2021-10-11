@@ -1,0 +1,161 @@
+Scripts for playing MPD, Pandora, and radio stations.
+
+Overview
+--------
+
+`mps` is a wrapper script for mpc/mpd that supports dynamic playlists.
+
+`pandora` is a script that plays pandora stations using pianobar in a tmux session.
+
+`radio` is a script that streams radio using mpv in a tmux session.
+
+`music` is a script that switches between the above scripts and manages
+whichever one is active.
+
+These scripts are designed with window managers in mind, and the documentation
+below has example configs for integrating them with i3, rofi, blezz, and other
+tools.
+
+Requirements
+------------
+
+* all: gettext (for envsubst), bash >=4.3
+* music: rofi or another dmenu-compatible program
+* mps: mpc
+* pandora: pianobar, tmux
+* radio: socat, jq, mpv, tmux
+
+In addition, `mps` requires access to MPD's music directory.
+
+Install
+-------
+
+On Arch Linux, grab the PKGBUILD from the GitHub repository and install using
+`makepkg` in the usual way.
+
+On other distributions, you can install manually by copying the files in ./bin
+to your PATH, making them executable, and copying the file in ./etc to /etc .
+
+There is also a Makefile available for package maintainers and advanced users.
+It does not include `uninstall` or `clean` targets. Use with caution.
+
+Usage
+-----
+
+Running any command from this project, e.g. `music --help`, will create a
+default config for you if one does not exist at `~/.config/music/config.ini` .
+The default config has many comments explaining what each option does.
+
+Use `music mps`, `music pandora` or `music radio` to switch between music sources
+and `music play` to play the selected music source. You can also chain these
+commands together, e.g. `music radio play` will switch to the radio and start
+playing it.
+
+You may find it useful to create a blezz menu for selecting a music source:
+
+ Music:
+ act(m,Mpd,     music mps play )
+ act(p,Pandora, music pandora play )
+ act(r,Radio,   music radio play )
+ act(c,Choose,  music choose )
+
+Or an i3 mode:
+
+ set $exec exec --no-startup-id
+ # music mode
+ set $musicmode (M)PD, (P)andora, (R)adio, (C)hoose, (Esc) Cancel
+ mode "$musicmode" {
+    # mpd
+    bindsym m $exec music mps play; mode "default"
+    bindsym $mod+m $exec music mps; mode "default"
+    # pandora
+    bindsym p $exec music pandora play; mode "default"
+    bindsym $mod+p $exec music pandora; mode "default"
+    # radio
+    bindsym r $exec music radio play; mode "default"
+    bindsym $mod+r $exec music radio; mode "default"
+    # choose
+    bindsym c $exec music choose; mode "default"
+    bindsym $mod+c $exec music choose; mode "default"
+  
+    # cancel
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+ }
+ bindsym $mod+m mode "$musicmode"
+
+Both snippets above also include a `music choose` entry, which launches a
+menu with dmenu where you can pick either a dynamic playlist, Pandora station, or
+radio station depending on which music source is currently active.
+
+The dynamic playlists are stored in `~/.config/music/mps-playlists` by
+default, and let you use glob patterns and mpc commands as entries in the
+playlist. Here is an example playlist with descriptive comments:
+
+ # comments start with #
+ 
+ # music file entries start with / and are relative to mpd's music directory
+ /Soundtrack/Anime/Cowboy Bebop/The Real Folk Blues.mp3
+ 
+ # listing a folder will add all music files in that folder recursively
+ /Soundtrack
+ 
+ # you can use glob patterns in file and folder paths
+ #
+ # the following would match both '/Metal/BabyMetal' and '/Metal/LadyBaby'
+ /Metal/*Baby*
+ 
+ # the following would load all music in your library
+ /*
+ 
+ # commands are passed as arguments to mpc
+ search genre trip
+ search artist enya
+ search album cowboy\ bebop
+ search title lithium\ flower
+ load Radio/Stations.m3u
+ 
+ # the 'random', 'repeat', and 'shuffle' commands are always run last,
+ # no matter where in the playlist they appear
+ repeat on
+ random off
+ shuffle
+ 
+ # a number N following by the name of a dynamic playlist will add one random
+ # file (not command) from that playlist
+ #
+ # a simple use case for this is to construct a playlist where each slot in the
+ # playlist is randomly chosen from a different group of songs:
+ 1 wakeup-begin
+ 1 all
+ 1 adultswim
+ 1 soundtrack
+ 1 techno
+ 1 jazzy
+ 1 rock
+ 1 metal
+ 1 wakeup-end
+
+The `music` script also has commands for binding to media buttons. Below is an
+example for doing that with i3. Use `xev` to check the name of your media
+buttons.
+
+ bindsym XF86AudioNext         $exec music next
+ bindsym XF86AudioPrev         $exec music prev
+ bindsym XF86AudioPlay         $exec music toggle
+ bindsym XF86AudioStop         $exec music stop
+
+Documentation
+-------------
+
+Project documentation can be found in these files:
+
+* LICENSE - Terms and conditions
+* README  - This document
+
+The changelog can be viewed on GitHub at
+https://github.com/DMBuce/music/commits/master .
+
+/////
+vim: set syntax=asciidoc ts=4 sw=4 noet:
+/////
