@@ -71,10 +71,17 @@ case "$1" in
 		fi
 	;;
 	*)
+		# if we're being sent data on stdin
+		if [[ -p /dev/stdin ]]; then
+			# dump data to state file
+			echo "lastEvent=$1" > "$statefile"
+			cat >> "$statefile"
 		# switch to radio station
-		pos="$(sed -n "/station.*$1/I { s/^station//; s/=.*//; p }" "$statefile")"
-		[[ "$pos" =~ [0-9]+ ]] || exit
-		pianoctl "s$pos\n"
+		else
+			pos="$(sed -n "/station.*$1/I { s/^station//; s/=.*//; p }" "$statefile")"
+			[[ "$pos" =~ [0-9]+ ]] || exit
+			pianoctl "s$pos\n"
+		fi
 	;;
 esac
 
