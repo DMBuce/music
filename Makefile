@@ -76,6 +76,6 @@ $(DESTDIR)$(sysconfdir)/%: etc/%
 
 $(DESTDIR)$(bindir)/music: bin/music
 	$(INSTALL_PROGRAM) $< $@
-	$(SED_INPLACE) '/sysconfdir=/ s,.*,sysconfdir="$(DESTDIR)$(sysconfdir)",' $@
+	$(SED_INPLACE) '/sysconfdir=/ s,.*,sysconfdir="$(sysconfdir)",' $@
 
 # vim: set ft=make:
