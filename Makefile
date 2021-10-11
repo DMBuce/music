@@ -40,6 +40,9 @@ INSTALL         = /usr/bin/install -c
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_DATA    = ${INSTALL} -m 644
 
+LN_S        = ln -s
+SED_INPLACE = sed -i
+
 PACKAGE   = music
 PROG      = music
 #VERSION   = 0.0.0
