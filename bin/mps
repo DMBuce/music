@@ -10,8 +10,10 @@ musicdir="${mps[musicdir]:-$HOME/music}"
 usage="Syntax: $prog [toggle|stop|play|pause|prev|next|list|<playlist>]
 "
 
-# do all work from music dir if possible
-[[ -x "$musicdir" ]] && cd "$musicdir"
+# do all work from music dir
+if ! cd "$musicdir"; then
+	die "Can't switch to directory: %s" "$musicdir"
+fi
 
 # try to create folders if they don't exist
 mkdir -p "$(dirname "$excludefile")" "$playlistdir"
