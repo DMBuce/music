@@ -62,7 +62,7 @@ act(c,Choose,  music choose )
 
 Or an i3 mode:
 
-....
+----
 set $exec exec --no-startup-id
 # music mode
 set $musicmode (M)PD, (P)andora, (R)adio, (C)hoose, (Esc) Cancel
@@ -79,13 +79,13 @@ mode "$musicmode" {
    # choose
    bindsym c $exec music choose; mode "default"
    bindsym $mod+c $exec music choose; mode "default"
-
+ +
    # cancel
    bindsym Return mode "default"
    bindsym Escape mode "default"
 }
 bindsym $mod+m mode "$musicmode"
-....
+----
 
 Both snippets above also include a `music choose` entry, which launches a
 menu with dmenu where you can pick either a dynamic playlist, Pandora station, or
