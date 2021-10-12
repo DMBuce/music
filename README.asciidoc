@@ -79,7 +79,7 @@ mode "$musicmode" {
    # choose
    bindsym c $exec music choose; mode "default"
    bindsym $mod+c $exec music choose; mode "default"
- +
+{empty}
    # cancel
    bindsym Return mode "default"
    bindsym Escape mode "default"
