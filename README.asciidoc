@@ -92,8 +92,7 @@ menu with dmenu where you can pick either a dynamic playlist, Pandora station, o
 radio station depending on which music source is currently active.
 
 The dynamic playlists are stored in `~/.config/music/mps-playlists` by
-default, and let you use glob patterns and mpc commands as entries in the
-playlist. Here is an example playlist with descriptive comments:
+default. Here is an example playlist showing how they work:
 
 ----
 # comments start with #
@@ -106,7 +105,7 @@ playlist. Here is an example playlist with descriptive comments:
 
 # you can use glob patterns in file and folder paths
 #
-# the following would match both '/Metal/BabyMetal' and '/Metal/LadyBaby'
+# the following would match both /Metal/BabyMetal and /Metal/LadyBaby
 /Metal/*Baby*
 
 # the following would load all music in your library
@@ -117,7 +116,7 @@ search genre trip
 search artist enya
 search album cowboy\ bebop
 search title lithium\ flower
-load Radio/Stations.m3u
+load Soundtrack/TV/AdultSwim.m3u
 
 # the 'random', 'repeat', and 'shuffle' commands are always run last,
 # no matter where in the playlist they appear
