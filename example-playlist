@@ -19,7 +19,6 @@ search genre trip
 search artist enya
 search album cowboy\ bebop
 search title lithium\ flower
-load Soundtrack/TV/AdultSwim.m3u
 
 # the 'random', 'repeat', and 'shuffle' commands are always run last,
 # no matter where in the playlist they appear
