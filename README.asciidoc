@@ -49,6 +49,11 @@ and `music play` to play the selected music source. You can also chain these
 commands together, e.g. `music radio play` will switch to the radio and start
 playing it.
 
+Running `music` with no arguments will show some info about the current music
+source. If `pandora` or `radio` are the current music source, it will attach
+to a tmux session running `pianobar` or `mpv`, respectively. Use Ctrl+b to
+detach from the tmux session.
+
 You may find it useful to create a blezz menu for selecting a music source:
 
 ----
