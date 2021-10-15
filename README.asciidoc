@@ -13,14 +13,13 @@ Overview
 whichever one is active.
 
 These scripts are designed with window managers in mind, and the documentation
-below has example configs for integrating them with i3, rofi, blezz, and other
-tools.
+below has example configs for integrating them with i3, rofi, blezz, etc.
 
 Requirements
 ------------
 
 * all: gettext (for envsubst), bash >=4.3
-* music: rofi or another dmenu-compatible program
+* music: dmenu or a dmenu-compatible program such as rofi
 * mps: mpc
 * pandora: pianobar, tmux
 * radio: socat, jq, mpv, tmux
@@ -93,52 +92,7 @@ radio station depending on which music source is currently active.
 
 The dynamic playlists are stored in `~/.config/music/mps-playlists` by
 default. Here is an example playlist showing how they work:
-
-----
-# comments start with #
-
-# music file entries start with / and are relative to mpd's music directory
-/Soundtrack/Anime/Cowboy Bebop/The Real Folk Blues.mp3
-
-# listing a folder will add all music files in that folder recursively
-/Soundtrack
-
-# you can use glob patterns in file and folder paths
-#
-# the following would match both /Metal/BabyMetal and /Metal/LadyBaby
-/Metal/*Baby*
-
-# the following would load all music in your library
-/*
-
-# commands are passed as arguments to mpc
-search genre trip
-search artist enya
-search album cowboy\ bebop
-search title lithium\ flower
-load Soundtrack/TV/AdultSwim.m3u
-
-# the 'random', 'repeat', and 'shuffle' commands are always run last,
-# no matter where in the playlist they appear
-repeat on
-random off
-shuffle
-
-# a number N following by the name of a dynamic playlist will add one random
-# file (not command) from that playlist
-#
-# a simple use case for this is to construct a playlist where each slot in the
-# playlist is randomly chosen from a different group of songs:
-1 wakeup-begin
-1 all
-1 adultswim
-1 soundtrack
-1 techno
-1 jazzy
-1 rock
-1 metal
-1 wakeup-end
-----
+https://github.com/DMBuce/music/blob/master/example-playlist
 
 The `music` script also has commands for binding to media buttons. Below is an
 example for doing that with i3. Use `xev` to check the name of your media
