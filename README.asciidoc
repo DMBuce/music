@@ -92,7 +92,7 @@ radio station depending on which music source is currently active.
 
 The dynamic playlists are stored in `~/.config/music/mps-playlists` by
 default. Here is an example playlist showing how they work:
-https://github.com/DMBuce/music/blob/master/example-playlist
+https://raw.githubusercontent.com/DMBuce/music/master/example-playlist
 
 The `music` script also has commands for binding to media buttons. Below is an
 example for doing that with i3. Use `xev` to check the name of your media
