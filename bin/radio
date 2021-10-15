@@ -67,9 +67,10 @@ choose() {
 			else
 				echo $i > "$statefile"
 			fi
-			return
+			return 0
 		fi
 	done
+	return 1
 }
 
 # send input to tmux session
@@ -139,8 +140,10 @@ case "$1" in
 		fi
 	;;
 	*)
-		# switch to radio station
-		choose "$1"
+		# try to switch to radio station
+		if ! choose "$1"; then
+			usage
+		fi
 	;;
 esac
 
