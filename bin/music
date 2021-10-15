@@ -101,14 +101,16 @@ main() {
 	# config
 	dmenu="${music[dmenu]-dmenu}"
 	statefile="${music[statefile]:-$configdir/$prog.state}"
-	usage="Syntax: $prog [mps|pandora|radio] [toggle|stop|play|pause|prev|next|list|<choice>] [...]
+	scripts="${music[scripts]:-mps:pandora:radio}"
+	usage="Syntax: $prog [${scripts//:/|}] [toggle|stop|play|pause|prev|next|list|<choice>] [...]
 	"
 
 	music() {
 		local music
 		if [[ -r "$statefile" ]]; then
 			music=$(<"$statefile")
-			if [[ ! "$music" =~ ^(mps|pandora|radio)$ ]]; then
+			# if $music isn't configured in $scripts
+			if [[ ! "$scripts" =~ (^|:)"$music"(:|$) ]]; then
 				music=""
 			fi
 		fi
@@ -124,36 +126,30 @@ main() {
 
 	# do the thing
 	for subcmd in "$@"; do
-		case "$subcmd" in
-			mps|pandora|radio)
-				music=$(music)
-				[[ -n $music ]] && "$music" stop
-				echo "$subcmd" > "$statefile"
-				sleep 0.3
-			;;
-			select|choose)
-				music=$(music)
-				if [[ -z $music ]]; then
-					die "No music source selected, run: %s" "$prog mps|pandora|radio"
-				fi
-				choice="$($music list | $dmenu -p "${music^}")" || exit
-				exec $music "$choice"
-			;;
-			'')
-				music=$(music)
-				if [[ -z $music ]]; then
-					die "No music source selected, run: %s" "$prog mps|pandora|radio"
-				fi
-				exec $music
-			;;
-			*)
-				music=$(music)
-				if [[ -z $music ]]; then
-					die "No music source selected, run: %s" "$prog mps|pandora|radio"
-				fi
-				exec $music "$subcmd"
-			;;
-		esac
+		music=$(music)
+		if [[ $scripts =~ (^|:)"$subcmd"(:|$) ]]; then
+			[[ -n $music ]] && "$music" stop
+			echo "$subcmd" > "$statefile"
+			sleep 0.3
+		elif [[ $subcmd =~ ^(select|choose)$ ]]; then
+			music=$(music)
+			if [[ -z $music ]]; then
+				die "No music source selected, run: %s" "$prog ${scripts//:/|}"
+			fi
+			choice="$($music list | $dmenu -p "${music^}")" || exit
+			exec $music "$choice"
+		elif [[ -z $subcmd ]]; then
+			music=$(music)
+			if [[ -z $music ]]; then
+				die "No music source selected, run: %s" "$prog ${scripts//:/|}"
+			fi
+			exec $music
+		else
+			if [[ -z $music ]]; then
+				die "No music source selected, run: %s" "$prog ${scripts//:/|}"
+			fi
+			exec $music "$subcmd"
+		fi
 	done
 }
 
