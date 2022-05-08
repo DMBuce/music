@@ -27,7 +27,7 @@ random off
 shuffle
 
 # a number N following by the name of a dynamic playlist will add that many random
-# files (not commands) from that playlist
+# songs from that playlist
 #
 # a simple use case for this is to construct a playlist where each slot in the
 # playlist is randomly chosen from a different group of songs:
