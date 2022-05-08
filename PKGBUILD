@@ -12,7 +12,7 @@ pkgrel=1
 pkgdesc="Scripts for playing MPD, Pandora, and radio stations."
 arch=(any)
 url="https://github.com/DMBuce/music"
-license=('unknown')
+license=('GPL3')
 groups=()
 depends=(
   bash
