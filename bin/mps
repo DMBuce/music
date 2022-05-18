@@ -111,7 +111,7 @@ case "$1" in
 		playlist="$playlistdir/$1" 
 		if [[ -f "$playlist" ]]; then
 			# create temp file
-			trap "rm -f '$tmpfile'" EXIT
+			trap 'rm -f "$tmpfile"' EXIT
 			tmpfile="$(mktemp --tmpdir "$prog.XXXXXXXXXX")" || exit 1
 
 			# clear current playlist
