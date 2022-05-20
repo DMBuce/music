@@ -144,6 +144,7 @@ case "$1" in
 			# play the playlist
 			mpc -q play
 		else
+			echo "Playlist '$1' not found in playlist directory: $playlistdir" >&2
 			echo "$usage" >&2
 		fi
 	;;
